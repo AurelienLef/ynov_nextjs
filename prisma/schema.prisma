@@ -1,0 +1,62 @@
+// Schéma Prisma — Base de données Reservia
+// Provider SQLite par défaut (zéro configuration).
+// Pour passer en PostgreSQL/MySQL, changer "provider" ci-dessous
+// et l'URL dans .env (voir README).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// --- Utilisateurs ---
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String // hashé avec bcrypt
+  role      String   @default("USER") // "USER" ou "ADMIN"
+  createdAt DateTime @default(now())
+
+  reservations Reservation[]
+}
+
+// --- Destinations ---
+model Destination {
+  id        String @id @default(cuid())
+  name      String
+  country   String
+  image     String // URL de l'image principale
+  gallery   String // URLs séparées par des virgules (galerie)
+  basePrice Int // prix de base par personne et par nuit
+  shortDesc String
+  longDesc  String
+  // Plage d'ouverture : le séjour est réservable entre ces deux dates.
+  // Le voyageur choisit son arrivée et son départ à l'intérieur.
+  // Stockées au format "YYYY-MM-DD".
+  availableFrom String
+  availableTo   String
+  createdAt     DateTime @default(now())
+
+  reservations Reservation[]
+}
+
+// --- Réservations ---
+model Reservation {
+  id         String   @id @default(cuid())
+  startDate  String // date d'arrivée choisie (YYYY-MM-DD)
+  endDate    String // date de départ choisie (YYYY-MM-DD)
+  nights     Int // nombre de nuits
+  people     Int // nombre de personnes
+  totalPrice Int // prix total = basePrice * nights * people
+  createdAt  DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  destinationId String
+  destination   Destination @relation(fields: [destinationId], references: [id], onDelete: Cascade)
+}
