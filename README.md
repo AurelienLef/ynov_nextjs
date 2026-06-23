@@ -130,52 +130,6 @@ pertinente** selon la nature de son contenu. Voici le raisonnement page par page
 | `/account` (Mon compte)    | **CSR**      | `"use client"`         | Données **privées** par utilisateur → aucun cache, pas de SEO       |
 | `/admin`                   | **CSR**      | `"use client"`         | Tableau de bord privé, ultra interactif, non indexable              |
 
-### Détail des justifications
-
-#### 🏠 Page d'accueil → **ISR** (`revalidate = 3600`)
-La homepage est **identique pour tous les visiteurs**, on a donc tout intérêt à la servir
-en **statique** (rapidité maximale + excellent référencement SEO pour une page d'accueil).
-Mais elle affiche des « destinations populaires » qui peuvent changer quand l'admin ajoute
-du contenu. On ne veut pas re-builder tout le site à chaque ajout → **ISR** régénère la
-page **au maximum une fois par heure**. C'est le meilleur compromis vitesse / fraîcheur.
-
-#### 📋 Liste des destinations → **ISR** (`revalidate = 60`)
-Le catalogue change **rarement** (ajout ponctuel par un admin). Faire du **SSR** (rendu à
-chaque requête) serait inutilement coûteux. Le **SSG** seul empêcherait les nouvelles
-destinations d'apparaître sans re-build. **ISR** sert la page en statique et la régénère
-en arrière-plan toutes les **60 secondes** : les nouvelles destinations apparaissent
-quasi immédiatement, sans sacrifier la performance.
-
-> 💡 La **recherche, le filtrage et la pagination** se font **côté client** (`useMemo`)
-> sur la liste déjà chargée. C'est suffisant ici vu le faible volume de données. Pour un
-> très gros catalogue, on paginerait côté serveur via l'API.
-
-#### 🏝️ Détail d'une destination → **ISR + `generateStaticParams`**
-Une fiche destination (photos, description, prix) est un **contenu de catalogue** qui
-change peu : on **pré-génère** toutes les fiches existantes au build via
-`generateStaticParams` (affichage instantané + SEO optimal). `revalidate = 120` permet de
-régénérer une fiche si l'admin en modifie le prix, **sans re-build complet**. Grâce à
-`dynamicParams` (activé par défaut), une destination **ajoutée après le build** est
-générée à la volée au premier accès, puis mise en cache.
-
-> Le **SSR** aurait été justifié si le contenu était **personnalisé par requête** (ex :
-> prix variable selon l'utilisateur connecté). Ce n'est pas le cas → **ISR** est plus
-> performant.
-
-#### 🔐 Connexion / Inscription → **CSR**
-Pages de **formulaire interactif**, propres à chaque utilisateur. Aucun intérêt à les
-pré-rendre côté serveur : on gère l'état du formulaire et les appels à NextAuth
-directement côté client.
-
-#### 👤 Mon compte → **CSR**
-Contenu **100 % privé** : les réservations de l'utilisateur connecté. Le cache statique
-n'a aucun sens (données personnelles) et le **SEO est inutile** sur une page protégée. On
-lit la session avec `useSession` et on charge les données via l'API avec `useEffect`.
-
-#### ⚙️ Administration → **CSR**
-Tableau de bord **réservé aux admins**, très interactif (formulaires d'ajout/édition,
-suppression en direct). Données sensibles et non indexables → ni SSG ni ISR. L'accès est
-**protégé** (redirection si l'utilisateur n'est pas admin + middleware serveur).
 
 ---
 
@@ -346,16 +300,3 @@ Chaque route gère les **erreurs** (codes 400/401/403/404/500) et vérifie les
 - **Responsive design** : media queries pour mobile/tablette (grilles adaptatives,
   navbar simplifiée).
 - **Singleton Prisma** pour éviter la multiplication des connexions en développement.
-
----
-
-## 📸 Captures d'écran
-
-> _À compléter : ajoutez ici vos captures d'écran (accueil, liste, détail, réservation,
-> espace utilisateur, admin) après avoir lancé l'application._
-
----
-
-## 📝 Licence
-
-Projet pédagogique — libre d'utilisation à des fins d'apprentissage.
